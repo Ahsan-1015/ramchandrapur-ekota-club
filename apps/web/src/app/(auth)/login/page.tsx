@@ -29,7 +29,12 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Successful login
+      // Successful login - persist state
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user_email', email);
+        document.cookie = 'isLoggedIn=true; path=/; max-age=86400';
+      }
+
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
@@ -66,7 +71,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+                placeholder="aaaa.ahshanhabib@gmail.com"
                 className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl py-2.5 pl-11 pr-4 text-sm text-slate-100 focus:outline-none transition-colors"
               />
             </div>

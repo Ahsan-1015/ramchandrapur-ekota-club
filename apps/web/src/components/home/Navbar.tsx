@@ -11,7 +11,8 @@ import {
   Bell, 
   User, 
   ArrowRight, 
-  TrendingUp 
+  LayoutDashboard, 
+  LogOut 
 } from 'lucide-react';
 
 export function Navbar() {
@@ -19,6 +20,8 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,8 +32,27 @@ export function Navbar() {
       }
     };
     window.addEventListener('scroll', handleScroll);
+
+    // Check auth status from cookie / localStorage
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user_email');
+      const hasCookie = document.cookie.includes('token=') || document.cookie.includes('access_token=');
+      if (storedUser || hasCookie) {
+        setIsLoggedIn(true);
+        setUserEmail(storedUser || 'aaaa.ahshanhabib@gmail.com');
+      }
+    }
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_email');
+      document.cookie = 'token=; Max-Age=0; path=/;';
+    }
+    setIsLoggedIn(false);
+  };
 
   const navLinks = [
     { label: 'হোম', href: '/' },
@@ -48,34 +70,34 @@ export function Navbar() {
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-slate-950/85 backdrop-blur-xl border-b border-slate-800/80 shadow-2xl py-3'
-            : 'bg-transparent py-5 border-b border-transparent'
+            ? 'bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 shadow-2xl py-3'
+            : 'bg-slate-950/40 backdrop-blur-md py-4 border-b border-slate-800/40'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/30 group-hover:scale-105 transition-transform">
-              <HeartHandshake className="w-6 h-6 text-white" />
+          <Link href="/" className="flex items-center space-x-2.5 sm:space-x-3 group shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/30 group-hover:scale-105 transition-transform">
+              <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <span className="font-extrabold text-base md:text-lg text-slate-100 tracking-tight block">
+              <span className="font-extrabold text-sm sm:text-base md:text-lg text-slate-100 tracking-tight block leading-tight">
                 রামচন্দ্রপুর একতা ক্লাব
               </span>
-              <span className="text-[10px] text-emerald-400 font-medium tracking-widest uppercase block">
+              <span className="text-[9px] sm:text-[10px] text-emerald-400 font-medium tracking-widest uppercase block">
                 Ramchandrapur Ekota Club
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-7 text-xs font-semibold text-slate-300">
+          <nav className="hidden lg:flex items-center space-x-6 xl:space-x-7 text-xs font-semibold text-slate-300">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={`transition-colors hover:text-emerald-400 ${
-                  link.isBlood ? 'text-rose-400 hover:text-rose-300 flex items-center gap-1' : ''
+                  link.isBlood ? 'text-rose-400 hover:text-rose-300 flex items-center gap-1 font-bold' : ''
                 }`}
               >
                 {link.isBlood && <Droplet className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse" />}
@@ -84,8 +106,8 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* Actions & Utilities */}
-          <div className="flex items-center space-x-3">
+          {/* Actions & Responsive Auth State */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Search Trigger */}
             <button
               onClick={() => setSearchOpen(true)}
@@ -106,26 +128,58 @@ export function Navbar() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500" />
             </Link>
 
-            {/* Login / Register CTAs */}
-            <div className="hidden sm:flex items-center space-x-2">
-              <Link
-                href="/login"
-                className="text-xs font-semibold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl hover:bg-slate-900 transition-colors"
-              >
-                লগইন
-              </Link>
-              <Link
-                href="/register"
-                className="text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-4 py-2 rounded-xl shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all flex items-center gap-1.5"
-              >
-                সদস্য হন <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+            {/* DYNAMIC LOGGED-IN STATE VS GUEST STATE */}
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-2">
+                {/* Prominent Dashboard Button */}
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>ড্যাশবোর্ড</span>
+                </Link>
+
+                {/* Profile / Logout Button on Desktop */}
+                <button
+                  onClick={handleLogout}
+                  title="Logout"
+                  className="hidden md:flex p-2 rounded-xl bg-slate-900 border border-slate-800 text-rose-400 hover:bg-rose-500/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                {/* Always Show Dashboard Shortcut */}
+                <Link
+                  href="/dashboard"
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl transition-all"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>ড্যাশবোর্ড</span>
+                </Link>
+
+                <Link
+                  href="/login"
+                  className="hidden sm:block text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 rounded-xl hover:bg-slate-900 transition-colors"
+                >
+                  লগইন
+                </Link>
+                <Link
+                  href="/register"
+                  className="text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3.5 sm:px-4 py-2 rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1"
+                >
+                  সদস্য হন <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300"
+              aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -159,9 +213,9 @@ export function Navbar() {
             <div className="space-y-2 pt-2">
               <span className="text-[10px] text-slate-500 uppercase tracking-wider block">দ্রুত লিঙ্কসমূহ</span>
               <div className="flex flex-wrap gap-2 text-xs">
+                <Link href="/dashboard" onClick={() => setSearchOpen(false)} className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ড্যাশবোর্ড</Link>
                 <Link href="/members?bloodGroup=O%2B" onClick={() => setSearchOpen(false)} className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">O+ রক্তদাতা</Link>
                 <Link href="/events" onClick={() => setSearchOpen(false)} className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">আসন্ন ইভেন্ট</Link>
-                <Link href="/notices" onClick={() => setSearchOpen(false)} className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">জরুরি নোটিশ</Link>
               </div>
             </div>
           </div>
@@ -170,8 +224,19 @@ export function Navbar() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-x-0 top-[73px] z-40 bg-slate-950/95 border-b border-slate-800 p-6 space-y-4 lg:hidden backdrop-blur-xl">
+        <div className="fixed inset-x-0 top-[73px] z-40 bg-slate-950/95 border-b border-slate-800 p-6 space-y-4 lg:hidden backdrop-blur-xl animate-in slide-in-from-top duration-200">
           <div className="flex flex-col space-y-3">
+            <Link
+              href="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-bold text-emerald-400 py-2.5 border-b border-slate-800 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <LayoutDashboard className="w-4 h-4" /> ড্যাশবোর্ড (Dashboard)
+              </span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -185,20 +250,34 @@ export function Navbar() {
           </div>
 
           <div className="pt-4 flex flex-col space-y-2">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center bg-slate-900 text-slate-200 py-2.5 rounded-xl text-xs font-semibold"
-            >
-              লগইন করুন
-            </Link>
-            <Link
-              href="/register"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center bg-emerald-500 text-slate-950 py-2.5 rounded-xl text-xs font-bold"
-            >
-              সদস্য পোর্টালে যুক্ত হন
-            </Link>
+            {isLoggedIn ? (
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-center bg-rose-500/10 border border-rose-500/20 text-rose-400 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-4 h-4" /> লগআউট (Logout)
+              </button>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center bg-slate-900 text-slate-200 py-2.5 rounded-xl text-xs font-semibold"
+                >
+                  লগইন করুন
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center bg-emerald-500 text-slate-950 py-2.5 rounded-xl text-xs font-bold"
+                >
+                  সদস্য পোর্টালে যুক্ত হন
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

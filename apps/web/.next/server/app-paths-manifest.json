@@ -1,11 +1,8 @@
 {
-  "/(public)/members/page": "app/(public)/members/page.js",
-  "/(auth)/register/page": "app/(auth)/register/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(public)/page": "app/(public)/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
+  "/(public)/contact/page": "app/(public)/contact/page.js",
   "/dashboard/members/page": "app/dashboard/members/page.js",
-  "/dashboard/finance/page": "app/dashboard/finance/page.js",
-  "/dashboard/events/page": "app/dashboard/events/page.js",
-  "/dashboard/notices/page": "app/dashboard/notices/page.js",
-  "/dashboard/voting/page": "app/dashboard/voting/page.js"
+  "/dashboard/page": "app/dashboard/page.js"
 }
