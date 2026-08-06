@@ -82,11 +82,11 @@ pnpm install
 Create `apps/api/.env`:
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://ramchandrapur-ekota-club:LSF8nso19Qo3vBzm@cluster0.xg04b.mongodb.net/ramchandrapur_ekota_club?retryWrites=true&w=majority&appName=Cluster0
-JWT_SECRET=7fP$2mL#vQ8!zX@9NkR&5HsWcT1bYpD4EaJ%uM6LgI^oF3sRzA8nVxCqJwE7KdBn
-CLOUDINARY_CLOUD_NAME=ramchndrapur-ekota-club
-CLOUDINARY_API_KEY=742445196267524
-CLOUDINARY_API_SECRET=qdcGXL6JpZGxjDVEfCsn8I0V1jI
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/ramchandrapur_ekota_club?retryWrites=true&w=majority
+JWT_SECRET=your_jwt_secret_key_here
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 Create `apps/web/.env.local`:
