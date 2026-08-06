@@ -1,0 +1,24 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# build outputs
+/dist
+/.next
+/out
+
+# environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE & OS
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# Turbo
+.turbo
