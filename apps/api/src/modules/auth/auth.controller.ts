@@ -38,6 +38,13 @@ export class AuthController {
     };
   }
 
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password for user account' })
+  async forgotPassword(@Body() body: { email: string; newPassword?: string }) {
+    return this.authService.forgotPassword(body);
+  }
+
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User logout' })

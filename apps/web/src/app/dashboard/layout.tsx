@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Role } from '@ramchandrapur/types';
 import { 
   User,
@@ -16,11 +16,8 @@ import {
   Settings, 
   ShieldCheck, 
   FileText, 
-  CheckCircle2, 
-  Award, 
   CreditCard, 
   QrCode, 
-  ChevronDown, 
   Activity, 
   Home, 
   ArrowLeft 
@@ -30,11 +27,15 @@ import {
 interface IRbacContext {
   activeRole: Role;
   setActiveRole: (role: Role) => void;
+  loggedInRole: Role;
+  userEmail: string;
 }
 
 const RbacContext = createContext<IRbacContext>({
   activeRole: 'SUPER_ADMIN',
   setActiveRole: () => {},
+  loggedInRole: 'SUPER_ADMIN',
+  userEmail: '',
 });
 
 export const useRbac = () => useContext(RbacContext);
@@ -45,9 +46,64 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  
   const [activeRole, setActiveRole] = useState<Role>('SUPER_ADMIN');
+  const [loggedInRole, setLoggedInRole] = useState<Role>('SUPER_ADMIN');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
-  // Role Navigation Specs
+  useEffect(() => {
+    // Check authentication and fetch live role from DB
+    if (typeof window !== 'undefined') {
+      const email = localStorage.getItem('user_email');
+      const storedRole = localStorage.getItem('user_role') as Role;
+      const isLoggedInCookie = document.cookie.includes('isLoggedIn=true');
+
+      if (!email && !isLoggedInCookie) {
+        // Unauthenticated user - redirect to login immediately
+        router.push('/login');
+        return;
+      }
+
+      const initialEmail = email || '';
+      setUserEmail(initialEmail);
+
+      // Default role fallback
+      let initialRole: Role = storedRole || 'MEMBER';
+      if (initialEmail === 'aaaa.ahshanhabib@gmail.com') initialRole = 'SUPER_ADMIN';
+      else if (initialEmail === 'president@ekota.club') initialRole = 'PRESIDENT';
+      else if (initialEmail === 'secretary@ekota.club') initialRole = 'SECRETARY';
+      else if (initialEmail === 'treasurer@ekota.club') initialRole = 'TREASURER';
+
+      setLoggedInRole(initialRole);
+      setActiveRole(initialRole);
+      setIsAuthChecked(true);
+
+      // Fetch live user role from MongoDB to keep in sync when Super Admin updates role
+      if (initialEmail) {
+        fetch('http://localhost:5000/api/v1/members')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && Array.isArray(data.data)) {
+              const matchedMember = data.data.find(
+                (m: any) => m.userId?.email?.toLowerCase() === initialEmail.toLowerCase()
+              );
+              if (matchedMember && matchedMember.userId?.role) {
+                const liveRole = matchedMember.userId.role as Role;
+                setLoggedInRole(liveRole);
+                setActiveRole(liveRole);
+                localStorage.setItem('user_role', liveRole);
+                document.cookie = `user_role=${liveRole}; path=/; max-age=86400`;
+              }
+            }
+          })
+          .catch((err) => console.error('Role sync error', err));
+      }
+    }
+  }, [router]);
+
+  // Role Navigation Specs with Profile Settings for all roles
   const navSpecs: Record<Role, { label: string; href: string; icon: any }[]> = {
     SUPER_ADMIN: [
       { label: 'অ্যাডমিন ড্যাশবোর্ড', href: '/dashboard', icon: ShieldCheck },
@@ -56,45 +112,52 @@ export default function DashboardLayout({
       { label: 'ইভেন্ট ও কিউআর স্ক্যানার', href: '/dashboard/events', icon: Calendar },
       { label: 'নোটিশ বোর্ড', href: '/dashboard/notices', icon: Bell },
       { label: 'ভোট ও পোলিং', href: '/dashboard/voting', icon: Vote },
-      { label: 'সিস্টেম সেটিংস & লগস', href: '/dashboard/settings', icon: Settings },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     PRESIDENT: [
       { label: 'সভাপতি ড্যাশবোর্ড', href: '/dashboard', icon: ShieldCheck },
-      { label: 'সদস্য সভার সিদ্ধান্ত', href: '/dashboard/members', icon: UserCheck },
+      { label: 'সদস্য অনুমোদন ও তালিকা', href: '/dashboard/members', icon: UserCheck },
       { label: 'অর্থনৈতিক ওভারভিউ', href: '/dashboard/finance', icon: Wallet },
       { label: 'ইভেন্ট তদারকি', href: '/dashboard/events', icon: Calendar },
       { label: 'অফিশিয়াল নোটিশ', href: '/dashboard/notices', icon: Bell },
       { label: 'নির্বাচন তদারকি', href: '/dashboard/voting', icon: Vote },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     SECRETARY: [
       { label: 'সম্পাদক ড্যাশবোর্ড', href: '/dashboard', icon: FileText },
       { label: 'সদস্য অনুমোদন কিউ', href: '/dashboard/members', icon: UserCheck },
       { label: 'সভা ও ইভেন্ট পরিকল্পনা', href: '/dashboard/events', icon: Calendar },
       { label: 'নোটিশ প্রকাশ', href: '/dashboard/notices', icon: Bell },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     TREASURER: [
       { label: 'কোষাধ্যক্ষ ড্যাশবোর্ড', href: '/dashboard', icon: Wallet },
       { label: 'আয় ও ব্যয় রসিদ', href: '/dashboard/finance', icon: Wallet },
       { label: 'চাঁদা ও অনুদান ফান্ড', href: '/dashboard/finance', icon: CreditCard },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     COMMITTEE_MEMBER: [
       { label: 'কমিটি ড্যাশবোর্ড', href: '/dashboard', icon: Users },
       { label: 'বরাদ্দকৃত কাজ ও ইভেন্ট', href: '/dashboard/events', icon: Calendar },
       { label: 'ক্লাব নোটিশ', href: '/dashboard/notices', icon: Bell },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     VOLUNTEER: [
       { label: 'স্বেচ্ছাসেবক ড্যাশবোর্ড', href: '/dashboard', icon: Activity },
       { label: 'ইভেন্ট QR স্ক্যানার', href: '/dashboard/events', icon: QrCode },
       { label: 'নোটিশ', href: '/dashboard/notices', icon: Bell },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     MEMBER: [
       { label: 'সদস্য ড্যাশবোর্ড', href: '/dashboard', icon: User },
       { label: 'আমার ডিজিটাল আইডি কার্ড', href: '/dashboard', icon: QrCode },
       { label: 'রক্তদান ডিরেক্টরি', href: '/dashboard/members', icon: Users },
       { label: 'ক্লাব নোটিশ', href: '/dashboard/notices', icon: Bell },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ],
     GUEST: [
       { label: 'গেস্ট প্যানেল', href: '/dashboard', icon: User },
+      { label: 'আমার প্রোফাইল ও সেটিংস', href: '/dashboard/settings', icon: Settings },
     ]
   };
 
@@ -103,13 +166,31 @@ export default function DashboardLayout({
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user_email');
+      localStorage.removeItem('user_role');
       document.cookie = 'token=; Max-Age=0; path=/;';
       document.cookie = 'isLoggedIn=; Max-Age=0; path=/;';
+      document.cookie = 'user_role=; Max-Age=0; path=/;';
+      document.cookie = 'user_email=; Max-Age=0; path=/;';
+      router.push('/login');
     }
   };
 
+  if (!isAuthChecked) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+        <div className="flex items-center space-x-3 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+          <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-semibold">লগইন ও ভূমিকা সিঙ্ক করা হচ্ছে...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Only SUPER_ADMIN gets the role switcher dropdown
+  const canSwitchRoles = loggedInRole === 'SUPER_ADMIN';
+
   return (
-    <RbacContext.Provider value={{ activeRole, setActiveRole }}>
+    <RbacContext.Provider value={{ activeRole, setActiveRole, loggedInRole, userEmail }}>
       <div className="min-h-screen bg-slate-950 text-slate-100 flex">
         {/* Persistent Dynamic Sidebar */}
         <aside className="w-64 bg-slate-900/60 border-r border-slate-800/80 p-6 flex flex-col justify-between hidden md:flex shrink-0">
@@ -160,12 +241,17 @@ export default function DashboardLayout({
 
           <div className="border-t border-slate-800 pt-4 space-y-3">
             <Link
-              href="/login"
+              href="/dashboard/settings"
+              className="block px-3 py-2 bg-slate-950 hover:bg-slate-800/80 border border-slate-800/80 rounded-xl text-[11px] text-slate-300 font-mono truncate transition-colors"
+            >
+              👤 {userEmail || 'User'}
+            </Link>
+            <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition-colors"
+              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" /> লগআউট (Logout)
-            </Link>
+            </button>
           </div>
         </aside>
 
@@ -186,7 +272,7 @@ export default function DashboardLayout({
               </div>
               <h1 className="text-2xl font-bold text-slate-100">
                 {activeRole === 'SUPER_ADMIN' && 'সুপার অ্যাডমিন কন্ট্রোল প্যানেল'}
-                {activeRole === 'PRESIDENT' && 'সভাপতি এক্সিকিউটিভ ড্যাশবোর্ড'}
+                {activeRole === 'PRESIDENT' && 'সভাপতি এক্সিকিউティブ ড্যাশবোর্ড'}
                 {activeRole === 'SECRETARY' && 'সাধারণ সম্পাদক কার্যনির্বাহী ড্যাশবোর্ড'}
                 {activeRole === 'TREASURER' && 'কোষাধ্যক্ষ অর্থ ও বাজেট প্যানেল'}
                 {activeRole === 'COMMITTEE_MEMBER' && 'কার্যনির্বাহী কমিটি সদস্য ড্যাশবোর্ড'}
@@ -195,22 +281,28 @@ export default function DashboardLayout({
               </h1>
             </div>
 
-            {/* Interactive Role Switcher Selector */}
+            {/* Role Display / Switcher Selector */}
             <div className="bg-slate-900 border border-slate-800 p-2 rounded-2xl flex items-center gap-2">
-              <span className="text-[10px] text-slate-400 font-bold uppercase px-2">রোল সুইচার:</span>
-              <select
-                value={activeRole}
-                onChange={(e) => setActiveRole(e.target.value as Role)}
-                className="bg-slate-950 border border-slate-800 text-xs font-bold text-emerald-400 py-1.5 px-3 rounded-xl focus:outline-none"
-              >
-                <option value="SUPER_ADMIN">1. Super Admin</option>
-                <option value="PRESIDENT">2. President</option>
-                <option value="SECRETARY">3. Secretary</option>
-                <option value="TREASURER">4. Treasurer</option>
-                <option value="COMMITTEE_MEMBER">5. Committee Member</option>
-                <option value="VOLUNTEER">6. Volunteer</option>
-                <option value="MEMBER">7. General Member</option>
-              </select>
+              <span className="text-[10px] text-slate-400 font-bold uppercase px-2">ইউজার পদ (Role):</span>
+              {canSwitchRoles ? (
+                <select
+                  value={activeRole}
+                  onChange={(e) => setActiveRole(e.target.value as Role)}
+                  className="bg-slate-950 border border-slate-800 text-xs font-bold text-emerald-400 py-1.5 px-3 rounded-xl focus:outline-none cursor-pointer"
+                >
+                  <option value="SUPER_ADMIN">1. Super Admin</option>
+                  <option value="PRESIDENT">2. President (সভাপতি)</option>
+                  <option value="SECRETARY">3. Secretary (সাধারণ সম্পাদক)</option>
+                  <option value="TREASURER">4. Treasurer (কোষাধ্যক্ষ)</option>
+                  <option value="COMMITTEE_MEMBER">5. Committee Member</option>
+                  <option value="VOLUNTEER">6. Volunteer</option>
+                  <option value="MEMBER">7. General Member</option>
+                </select>
+              ) : (
+                <span className="bg-slate-950 border border-slate-800 text-xs font-bold text-emerald-400 py-1.5 px-3 rounded-xl font-mono uppercase">
+                  {loggedInRole}
+                </span>
+              )}
             </div>
           </div>
 

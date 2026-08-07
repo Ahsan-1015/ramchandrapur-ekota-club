@@ -23,16 +23,23 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const resData = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
+        throw new Error(resData.message || 'Login failed');
       }
+
+      const userData = resData.data?.user || resData.user;
+      const userRole = userData?.role || 'MEMBER';
+      const userEmail = userData?.email || email;
 
       // Successful login - persist state
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user_email', email);
-        document.cookie = 'isLoggedIn=true; path=/; max-age=86400';
+        localStorage.setItem('user_email', userEmail);
+        localStorage.setItem('user_role', userRole);
+        document.cookie = `isLoggedIn=true; path=/; max-age=86400`;
+        document.cookie = `user_role=${userRole}; path=/; max-age=86400`;
+        document.cookie = `user_email=${userEmail}; path=/; max-age=86400`;
       }
 
       router.push('/dashboard');

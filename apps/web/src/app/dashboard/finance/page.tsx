@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, PlusCircle, CheckCircle2, FileText } from 'lucide-react';
+import { 
+  Wallet, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  PlusCircle, 
+  CheckCircle2, 
+  AlertCircle, 
+  X 
+} from 'lucide-react';
 
 interface ITransactionItem {
   _id: string;
@@ -20,6 +29,7 @@ export default function FinanceDashboardPage() {
   const [summary, setSummary] = useState<{ totalIncome: number; totalExpense: number; balance: number } | null>(null);
   const [transactions, setTransactions] = useState<ITransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // New Transaction Form State
   const [showModal, setShowModal] = useState(false);
@@ -38,12 +48,17 @@ export default function FinanceDashboardPage() {
     fetchFinanceData();
   }, []);
 
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
   async function fetchFinanceData() {
     setLoading(true);
     try {
       const [sumRes, txnRes] = await Promise.all([
-        fetch('http://localhost:5000/api/v1/finance/summary'),
-        fetch('http://localhost:5000/api/v1/finance/transactions'),
+        fetch('http://localhost:5000/api/v1/finance/summary', { credentials: 'include' }),
+        fetch('http://localhost:5000/api/v1/finance/transactions', { credentials: 'include' }),
       ]);
 
       const sumData = await sumRes.json();
@@ -64,25 +79,55 @@ export default function FinanceDashboardPage() {
       const res = await fetch('http://localhost:5000/api/v1/finance/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           ...form,
           amount: parseFloat(form.amount),
         }),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
+        showToast('success', `নতুন ভাউচার "${form.title}" সফলভাবে যুক্ত করা হয়েছে!`);
         setShowModal(false);
+        setForm({
+          type: 'INCOME',
+          category: 'MEMBERSHIP_FEE',
+          amount: '',
+          title: '',
+          description: '',
+          transactionDate: new Date().toISOString().split('T')[0],
+          paymentMethod: 'BKASH',
+          referenceNo: '',
+        });
         fetchFinanceData();
       } else {
-        alert(data.message || 'Transaction submission failed');
+        showToast('error', data.message || 'ভাউচার তৈরিতে সমস্যা হয়েছে');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showToast('error', err.message || 'সার্ভার সংযোগ সমস্যা');
     }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          className={`fixed top-6 right-6 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${
+            toastMessage.type === 'success'
+              ? 'bg-slate-900 border-emerald-500/50 text-emerald-400'
+              : 'bg-slate-900 border-rose-500/50 text-rose-400'
+          }`}
+        >
+          {toastMessage.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+          ) : (
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400" />
+          )}
+          <span className="text-xs font-bold">{toastMessage.text}</span>
+        </div>
+      )}
+
       {/* Header & Add Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl">
         <div>
@@ -96,9 +141,9 @@ export default function FinanceDashboardPage() {
 
         <button
           onClick={() => setShowModal(true)}
-          className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 text-xs flex items-center gap-2 transition-all"
+          className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 text-xs flex items-center gap-2 transition-all cursor-pointer"
         >
-          <PlusCircle className="w-4 h-4" /> নতুন ভাউচার যোগ করুন
+          <PlusCircle className="w-4 h-4" /> + নতুন ভাউচার যোগ করুন
         </button>
       </div>
 
@@ -204,17 +249,22 @@ export default function FinanceDashboardPage() {
 
       {/* Modal for adding new transaction */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4">
-          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl w-full max-w-lg space-y-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-100">নতুন আর্থিক ভাউচার লগ করুন</h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center items-center p-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-lg space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-100">নতুন আর্থিক ভাউচার যোগ করুন</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleCreateTransaction} className="space-y-4">
+            <form onSubmit={handleCreateTransaction} className="space-y-4 text-xs">
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1">লেনদেনের ধরন (Type)</label>
+                <label className="text-slate-400 font-semibold block mb-1">লেনদেনের ধরন (Type)</label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-100"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-slate-100 focus:outline-none"
                 >
                   <option value="INCOME">আয় (Income)</option>
                   <option value="EXPENSE">ব্যয় (Expense)</option>
@@ -222,42 +272,56 @@ export default function FinanceDashboardPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1">শিরোনাম (Title)</label>
+                <label className="text-slate-400 font-semibold block mb-1">শিরোনাম (Title)</label>
                 <input
                   type="text"
                   required
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="যেমন: সদস্য বার্ষিক চাঁদা"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-100"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-slate-100 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-400 block mb-1">টাকার পরিমাণ (BDT)</label>
+                <label className="text-slate-400 font-semibold block mb-1">টাকার পরিমাণ (BDT)</label>
                 <input
                   type="number"
                   required
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   placeholder="5000"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-sm text-slate-100"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-slate-100 focus:outline-none"
                 />
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div>
+                <label className="text-slate-400 font-semibold block mb-1">পেমেন্ট মেথড (Payment Method)</label>
+                <select
+                  value={form.paymentMethod}
+                  onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-slate-100 focus:outline-none"
+                >
+                  <option value="BKASH">bKash (বিকাশ)</option>
+                  <option value="NAGAD">Nagad (নগদ)</option>
+                  <option value="BANK">Bank Transfer (ব্যাংক)</option>
+                  <option value="CASH">Cash (নগদ ক্যাশ)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-sm"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-xs"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold py-2.5 rounded-xl text-sm"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-500/20"
                 >
-                  সংরক্ষণ করুন
+                  ভাউচার যুক্ত করুন
                 </button>
               </div>
             </form>

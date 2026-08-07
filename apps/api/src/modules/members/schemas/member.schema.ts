@@ -89,6 +89,9 @@ export class Member {
   qrCodeUrl: string;
 
   @Prop()
+  photoUrl?: string;
+
+  @Prop()
   cardPdfUrl?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
